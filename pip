@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# pip reunion
+#
+#guard syntax
+if [ ! -f ./core/conf ]; then echo "Current Directory is not HOME." 1>&2; exit 1;fi
+source ./core/conf
+cat core/piph > out
+echo -e '#slib\ndeclare slib=$(cat << '\''EOF'\' >> out
+cat core/slib >> out
+echo -e 'EOF\n)\n\n#lib\ndeclare lib=$(cat << '\''EOF'\' >> out
+cat core/lib >> out
+echo -e 'EOF\n)\n\n#confconf.sh\nconfconf=$(cat << '\''EOF'\' >> out
+cat confconf.sh >> out
+echo -e 'EOF\n)\n\n#mcmake.sh\nmcmake=$(cat << '\''EOF'\' >> out
+cat mcmake.sh >> out
+echo -e 'EOF\n)\n\n#run.sh\nrun=$(cat << '\''EOF'\' >> out
+cat run.sh >> out
+echo -e 'EOF\n)\n\n#piph\ncat << '\''EOF'\'' >> piph' >> out
+cat core/piph >> out
+echo -e 'EOF\n#piph END OF FILE\n\n#pipb\ncat << '\''EOF'\'' >> pipb' >> out
+cat core/pipb >> out
+echo -e 'EOF\n#pipb END OF FILE\n\n#pipf\ncat << '\''EOF'\'' >> pipf' >> out
+cat core/pipf >> out
+echo -e 'EOF\n#pipf END OF FILE\n\n#pip\ncat << '\''EOF'\'' >> pip' >> out
+cat core/pip >> out
+echo -e 'EOF\n#pip END OF FILE\n\n#start' >> out
+cat core/pipf >> out
+mv out alazif
+chmod a+x alazif
+cd $HOME
+mv ${CONF}/alazif alazif

@@ -1,0 +1,112 @@
+#
+# SLIB - here document string
+#
+
+#Readme
+declare readme=$(cat << EOS
+#
+# ALAZIF Mincraft Server Environment - How to use
+#
+
+#Explain:
+# When using the server command, attach with the following command.
+
+#Prior knowledge:
+# This suite of tools is based on "screen","systemd" and "ufw".
+# Therefore, it inherits these operations.
+# "Confname" serves as the destination for commands to act on.
+#
+# example
+# When working with live.conf. - live
+# or test                      - test
+
+#Running Server CLI:
+# sudo -u [username] screen -r mc[confname]
+# or
+# screen -r mc[confname]
+
+# Press C-a,C-d to exit the server screen.
+# Check the "screen" command for other operations.
+
+#Server backup:
+# When reload is executed, it will automatically stop after
+# executing the all-save command, and then save the world
+# data backup. It will automatically reboot after saving.
+
+#Save file location:
+# ./[confname]/world_backup/
+
+#Daemon Server control:
+# sudo systemctl [start | stop | reload | status] minecraft
+
+#Systemd register:
+# sudo systemctl [enable | disable] minecraft
+
+#Systemd unit file location:
+# /etc/systemd/system/minecraft-[confname].server
+EOS
+)
+
+#Generate the unitfile
+unitgen(){
+local unitfile=$(sudo cat << EOS
+#
+# unitfile - here document string
+#
+[Unit]
+Description=Minecraft Server Service("${NAME}")
+
+[Service]
+Type=forking
+User=${USR}
+WorkingDirectory=`pwd`/"${NAME}"
+ExecStart=/bin/bash -c "`pwd`/run.sh ${NAME} start"
+ExecStop=/bin/bash -c "`pwd`/run.sh ${NAME} stop"
+ExecReload=/bin/bash -c "`pwd`/run.sh ${NAME} reload"
+TimeoutStopSec=200
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+
+#END OF FILE
+EOS
+)
+echo "${unitfile}" > "minecraft-$1.service"
+}
+
+#runconf
+run_confgen(){
+local runconf=$(cat << EOS
+#
+# runconf - here document string
+#
+# Configuration data used in wizards.
+# Direct editing is not recommended.
+# Conf name
+NAME="$1"
+# Java command location
+JRE="$2"
+# Server application file name
+JAR="$3"
+# Server application arguments
+ARG="$4"
+# Execution user
+USR="$5"
+# Connection port
+PORT="$6"
+# Wait time (seconds) when the server is stopped
+WAIT="$7"
+# Copy source
+CPSRC="$8"
+# Availability of daemon operation
+DAEMON="$9"
+
+#END OF FILE
+EOS
+)
+echo "${runconf}" > ./conf/"$1".conf
+}
+
+#SLIB END OF FILE

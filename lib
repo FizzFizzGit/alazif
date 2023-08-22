@@ -1,0 +1,418 @@
+#
+# LIB - here document string
+#
+
+#autoport
+auto_port(){
+	min=$1; max=$2; i=$min
+	while true; do
+		_IFS=$IFS; IFS=$'\n'
+		port_test=$(echo | sudo netstat -apn | grep :$i)
+		IFS=$_IFS
+		if [ -z "${port_test[0]}" ]; then
+			echo $i
+			exit
+		fi
+		echo -e "$i is used in\n${port_test[@]}" 1>&2
+		if [ $i -eq $max ]; then echo "No free port found." 1>&2; exit; fi
+		i=$(($i+1))
+	done
+}
+
+#Generate the environment
+envgen(){
+	source ./conf/"$1".conf
+	local home sudoer
+	home=`pwd`; sudoer="sudo -u ${USR}"
+	$sudoer mkdir $home/${NAME}
+	$sudoer mkdir $home/${NAME}/world_backup
+	$sudoer cp ${JAR} $home/${NAME}
+	cd $home/${NAME}
+	java -jar $home/${NAME}/${JAR}
+	sed -i -e "s/false/true/" "$home/${NAME}/eula.txt"
+}
+
+apt_list_installer(){
+	local -n ref="$1"
+	echo -e "->Install apt list." 1>&2
+	for val in "${ref[@]}"; do
+		sudo apt install "${val}" 1>&2
+	done
+}
+
+allay_numbered_display(){
+    local -n ref
+    local title
+    ref="$1"; title="$2"
+	echo -e "\nAll $title version.\n" 1>&2
+	for val in "${ref[@]}"; do
+		echo "${val}" 1>&2
+	done
+	echo 1>&2
+}
+
+#Works only when IFS is \n.
+parse_apt_list_output(){
+	local word opt
+	word="$1"; opt="$2"
+	if [ "$IFS" != $'\n' ]; then echo "set IFS to '\n'." >&2; exit 1; fi
+	echo | apt list $opt 2>/dev/null | grep $word | nl -w 1 -s ' : '
+}
+
+get_package_names(){
+	local str=${1%/*}
+	str=${str##* }
+	echo $str
+}
+
+#Provides an installation dialog for apt packages.
+#Parse the arguments
+apt_install_dialog(){
+	while getopts fht:w: opt; do
+		case "$opt" in
+		t)
+			local title="${OPTARG}"
+			;;
+		w)
+			local word="${OPTARG}"
+		esac
+	done
+	_IFS=$IFS; IFS=$'\n'
+	local list=($(parse_apt_list_output $word))
+	local _list=($(parse_apt_list_output $word --installed))
+	IFS=$_IFS
+	local len="${#list[@]}"
+	local _len="${#_list[@]}"
+	if [ $len -gt $_len ]; then
+		allay_numbered_display list $title
+		read -ep "Want to install another version? Press Skip on Enter. : " i
+		if [[ $i -gt 0 ]]; then
+			if [[ $i -gt $len ]]; then echo "Invalid number,skip installation." 1>&2; return 0; fi
+			i=$(($i-1))
+			echo $(get_package_names "${list[$i]}")
+			return 0
+		else
+			echo "skip $title installation." 1>&2
+			return 0
+		fi
+	else
+		if [ 0 -eq $_len ]; then echo $(get_package_names "${list[0]}");return 0 ; fi
+	fi
+	echo "$title is already installed." 1>&2
+}
+
+jar_fetch(){
+	local path res ret
+	while getopts 'f:u:w:' fetch; do
+		case "${fetch}" in
+		f)
+			local file=${OPTARG}
+			if [ -n "$usr" ]; then
+				if [ ! -f $file ] || [[ `basename $file` != *.jar ]]; then break; fi
+				path=`dirname $file`
+				if [ ${CONF}!=$path ]; then cp $file ${CONF}; fi
+				ret=`basename $file`
+				break
+			fi
+			;;
+		u)
+			local usr=${OPTARG}
+			if [ -n "$url" ]; then
+				res=$(curl -Iso /dev/null $url -w "%{http_code}")
+				if [ $res -ne 200 ] || [[ `basename $url` != *.jar ]]; then break; fi
+				sudo -u $usr wget $url --quiet
+				ret=`basename $url`
+				break
+			fi
+			if [ -n "$file" ]; then
+				if [ ! -f $file ] || [[ `basename $file` != *.jar ]]; then break; fi
+				path `dirname $file`
+				if [ ${CONF}!=$path ]; then cp $file $dir; fi
+				ret=`basename $file`
+				break
+			fi
+			;;
+		w)
+			local url=${OPTARG}
+			if [ -n "$usr" ]; then
+				res=$(curl -Iso /dev/null $url -w "%{http_code}")
+				if [ $res -ne 200 ] || [[ `basename $url` != *.jar ]]; then break; fi
+				sudo -u $usr wget $url --quiet
+				ret=`basename $url`
+				break
+			fi
+			;;
+		esac
+	done
+
+	if [ -n "$ret" ]; then echo $ret; else exit 1; fi
+}
+
+make_new_dir(){
+	local str
+	while true; do
+		read -ep "Enter the new directory name. : " str
+		if [ -z "$str" ]; then continue; fi
+		if [ ! -d $str ]; then
+			read -ep "create a new directory?[Y/n] : " yn
+			case $yn in
+			[Yy])
+				mkdir $str
+				echo $str
+				break
+				;;
+			[Nn])
+				echo "Invalid path." 1>&2
+				break
+				;;
+			*)
+				echo "Enter y or n." 1>&2
+			esac
+		else
+			echo $str
+			break
+		fi
+	done
+}
+
+#Use directory dialog
+dir_dialog(){
+	local ret
+	while true; do
+		read -ep "Use current directory?[Y/n] : " yn
+		case $yn in
+		[Yy])
+			echo `pwd`
+			break
+			;;
+		[Nn])
+			ret=`make_new_dir`
+			if [ -z $ret ]; then return 1; fi
+			echo `pwd`/$ret
+			break
+			;;
+		*)
+			echo 'Enter y or n.' 1>&2
+		esac
+	done
+}
+
+#Conf name
+conf_name_dialog(){
+	local name
+	while true; do
+		read -ep "Enter conf name. : " name
+		if [ -n $name ]; then
+			if [ ! -d ./conf/$name.conf ]; then
+				echo $name
+				break
+			else
+				echo "Name already in use." 1>&2
+			fi
+		fi
+	done
+}
+
+#Copy source
+copy_source_dialog(){
+	local cpsrc
+	while true; do
+		read -ep "Enter copy source, blank to default. : " cpsrc
+		if [ -n "$cpsrc" ]; then
+			if [ ! -f $cpsrc ]; then echo $cpsrc; break; fi
+			echo "Source does not exist." 1>&2
+		else
+			echo "Create without copying." 1>&2
+			break
+		fi
+	done
+}
+
+#Availability of daemon operation
+daemon_dialog(){
+	while true; do
+		read -ep "Make it a Daemon?[Y/n] : " yn
+		case $yn in
+		[Yy])
+			echo "true"
+			break
+			;;
+		[Nn])
+			echo "false"
+			break
+			;;
+		*) echo "Enter y or n." 1>&2
+		esac
+	done
+}
+
+#Execution user
+user_dialog(){
+	local usr
+	while true; do
+		read -n1 -e -p "Use current user ? blank to default. : " usr
+		if [ -z "$usr" ]; then
+			echo "Use current user." 1>&2
+			echo `whoami`
+			break
+		else
+			if [ -n `getent passwd $usr` ]; then
+				break
+			else
+				echo "invalid username." 1>&2
+			fi
+		fi
+	done
+}
+
+#Java command location
+java_command_dialog(){
+	local jre
+	while true; do
+		read -n1 -ep "Use current JRE ? blank to default. : " jre
+		if [ -z "$jre" ]; then
+			echo "Use current JRE." 1>&2
+			echo ${JRE}
+			break
+		else
+			if [ -f $jre ]; then
+				echo $jre
+				break
+			else
+				echo "invalid path." 1>&2
+			fi
+		fi
+	done
+}
+
+#Server application file name
+server_jar_dialog(){
+	local usr url jar file
+	usr="$1"
+	while true; do
+		read -ep "Download server jar file?[Y/n] : " yn
+		case $yn in
+		[Yy])
+			while true; do
+				read -ep "Enter the URL of the server jar. : " url
+				jar="$(jar_fetch -u $usr -w $url)"
+				if [ -n "$jar" ]; then
+					echo $jar
+					break
+				else
+					echo "invalid URL." 1>&2
+				fi
+			done
+			break
+			;;
+		[Nn])
+			while true; do
+				read -ep "Enter full path of server jar. : " file
+				jar=`jar_fetch -u $usr -f $file`
+				if [ -n "$jar" ]; then
+					echo $jar
+					break
+				else
+					echo "invalid path." 1>&2
+				fi
+			done
+			break
+			;;
+		*)
+			echo 'Enter y or n.' 1>&2
+		esac
+	done
+}
+
+#Option
+option_dialog(){
+	local arg
+	read -ep "Enter the jar option, blank to default. : " arg
+	if [ -n "$arg" ]; then echo $arg; return; fi
+	echo "Use Defalut Option." 1>&2
+	echo ${ARG}
+}
+
+#Connection port
+port_dialog(){
+	local port
+	while true; do
+		read -ep "Enter connection port, blank to Auto. : " port
+		if [ -n "$port" ]; then
+			port_test=$(auto_port $port $port)
+			if [ -n "$port_test" ]; then
+				echo $port
+				break
+			fi
+		else
+			echo "Auto." 1>&2
+			echo "$(auto_port ${PORT_MIN} ${PORT_MAX})"
+			break
+		fi
+	done
+}
+
+#Wait time (seconds) when the server is stopped
+wait_dialog(){
+	local wait
+	read -ep "Enter number of seconds to pause, blank to default. : " wait
+	if [ -n "$wait" ]; then echo $wait; return; fi
+	echo "Use default." 1>&2
+	echo ${WAIT}
+}
+
+server_start(){
+	local sudoer
+	sudoer="$1"
+    $sudoer screen -dmS mc${NAME} ${JRE} ${ARG} -jar $home/${NAME}/${JAR} --port ${PORT}
+}
+
+server_holt(){
+	local evalcmd
+	evalcmd="$1"
+    $evalcmd stuff "say Stop the server for maintenance.Get ready now."'\015'
+    sleep 1
+    $evalcmd stuff "say '${WAIT}'s left."'\015'
+    sleep ${WAIT}
+    $evalcmd stuff "save_all"'\015'
+    $evalcmd quit
+}
+
+server_backup(){
+	local home sudoer bkdir
+	sudoer="$1"; home="$2"
+	bkdir=$home/${NAME}/world_backup/`date "+%Y%m%d%H"`
+    $sudoer mkdir $bkdir
+    $sudoer cp -ar $home/${NAME}/world/ $bkdir/
+    $sudoer cp -ar $home/${NAME}/world_nether/ $bkdir/
+    $sudoer cp -ar $home/${NAME}/world_the_end/ $bkdir/
+}
+
+run_core(){
+	source ./conf/"$1".conf
+	local psgrep sudoer home
+	psgrep=`ps a | grep ${JAR} | grep -v grep`
+	sudoer="sudo -u ${USR}"; home=`pwd`
+
+	cd $home/${NAME}
+	case "$2" in
+	    start)
+	        server_start "$sudoer";;
+	    stop)
+	        server_holt "$sudoer screen -S mc${NAME} -X";;
+	    reload)
+	        server_holt "$sudoer screen -S mc${NAME} -X"
+	        server_backup "$sudoer" "$home"
+	        server_start "$sudoer";;
+	    backup)
+	        if [[ -z $psgrep ]]; then
+	            server_backup "$sudoer" "$home"
+	        else
+	            echo "now running." 1>&2
+	        fi;;
+	    *)
+	        echo "start | stop | reload | backup" 1>&2
+	esac
+}
+
+#LIB END OF FILE
