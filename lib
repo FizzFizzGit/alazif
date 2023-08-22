@@ -391,7 +391,7 @@ server_backup(){
 run_core(){
 	source ./conf/"$1".conf
 	local psgrep sudoer home
-	psgrep=`ps a | grep ${JAR} | grep -v grep`
+	psgrep=`ps a | grep ${JAR} | grep -v grep || true`
 	sudoer="sudo -u ${USR}"; home=`pwd`
 
 	cd $home/${NAME}
