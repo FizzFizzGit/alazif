@@ -374,8 +374,7 @@ server_holt(){
     sleep 1
     $evalcmd stuff "say '${WAIT}'s left."'\015'
     sleep ${WAIT}
-    $evalcmd stuff "save_all"'\015'
-    $evalcmd quit
+    $evalcmd stuff "stop"'\015'
 }
 
 server_backup(){
