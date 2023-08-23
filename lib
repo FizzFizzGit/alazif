@@ -10,10 +10,7 @@ auto_port(){
 		_IFS=$IFS; IFS=$'\n'
 		port_test=$(echo | sudo netstat -apn | grep :$i)
 		IFS=$_IFS
-		if [ -z "${port_test[0]}" ]; then
-			echo $i
-			exit
-		fi
+		if [ -z "${port_test[0]}" ]; then echo $i; exit; fi
 		echo -e "$i is used in\n${port_test[@]}" 1>&2
 		if [ $i -eq $max ]; then echo "No free port found." 1>&2; exit; fi
 		i=$(($i+1))
@@ -67,7 +64,6 @@ get_package_names(){
 }
 
 #Provides an installation dialog for apt packages.
-#Parse the arguments
 apt_install_dialog(){
 	while getopts fht:w: opt; do
 		case "$opt" in
@@ -155,20 +151,9 @@ make_new_dir(){
 		read -ep "Enter the new directory name. : " str
 		if [ -z "$str" ]; then continue; fi
 		if [ ! -d $str ]; then
-			read -ep "create a new directory?[Y/n] : " yn
-			case $yn in
-			[Yy])
-				mkdir $str
-				echo $str
-				break
-				;;
-			[Nn])
-				echo "Invalid path." 1>&2
-				break
-				;;
-			*)
-				echo "Enter y or n." 1>&2
-			esac
+			echo "Create new directory." 1>&2
+			mkdir $str
+			echo $str
 		else
 			echo $str
 			break
@@ -364,56 +349,66 @@ wait_dialog(){
 
 server_start(){
 	local sudoer
-	sudoer="$1"
+	sudoer="sudo -u ${USR}"
     $sudoer screen -dmS mc${NAME} ${JRE} ${ARG} -jar $home/${NAME}/${JAR} --port ${PORT}
 }
 
-server_holt(){
-	local evalcmd
-	evalcmd="$1"
-    $evalcmd stuff "say Stop the server for maintenance.Get ready now."'\015'
-    sleep 1
-    $evalcmd stuff "say '${WAIT}'s left."'\015'
+server_halt(){
+	local evalcmd psgrep
+	evalcmd="sudo -u ${USR} screen -S mc${NAME} -X"
+	$evalcmd stuff "say Stop the server for maintenance.Get ready now."'\015'
+	sleep 1
+	$evalcmd stuff "say '${WAIT}'s left."'\015'
     sleep ${WAIT}
+    $evalcmd stuff "kick @a Server is shutdown, Wait for a reboot."'\015'
+    sleep 1
     $evalcmd stuff "stop"'\015'
-    $evalcmd quit
+    #stop loop
+    while true; do
+    	psgrep=`ps a | grep ${JAR} | grep -v grep || true`
+    	if [[ -z $psgrep ]]; then return 0; fi
+    done
 }
 
 server_backup(){
 	local home sudoer bkdir
-	sudoer="$1"; home="$2"
+	sudoer="sudo -u ${USR}"; home="$1"
 	bkdir=$home/${NAME}/world_backup/`date "+%Y%m%d%H"`
+	if [ -d $bkdir ]; then return; fi
     $sudoer mkdir $bkdir
     $sudoer cp -ar $home/${NAME}/world/ $bkdir/
     $sudoer cp -ar $home/${NAME}/world_nether/ $bkdir/
     $sudoer cp -ar $home/${NAME}/world_the_end/ $bkdir/
+    echo "Server Backup to $bkdir." 1>&2
 }
 
 run_core(){
 	source ./conf/"$1".conf
-	local psgrep sudoer home
+	local psgrep home
 	psgrep=`ps a | grep ${JAR} | grep -v grep || true`
-	sudoer="sudo -u ${USR}"; home=`pwd`
+	home=`pwd`
 
 	cd $home/${NAME}
 	case "$2" in
-	    start)
-	        server_start "$sudoer";;
-	    stop)
-	        server_holt "$sudoer screen -S mc${NAME} -X";;
-	    reload)
-	        server_holt "$sudoer screen -S mc${NAME} -X"
-	        server_backup "$sudoer" "$home"
-	        server_start "$sudoer";;
-	    backup)
-	        if [[ -z $psgrep ]]; then
-	            server_backup "$sudoer" "$home"
-			return 0
-	        else
-	            echo "now running." 1>&2
-	        fi;;
-	    *)
-	        echo "start | stop | reload | backup" 1>&2
+	start)
+		server_start
+		;;
+	stop)
+		server_halt
+		;;
+	reload)
+		server_halt
+		server_backup $home
+		server_start
+		;;
+	backup)
+		if [[ -z $psgrep ]]; then
+			server_backup $home
+		else
+			echo "now running." 1>&2
+		fi;;
+	*)
+		echo "start | stop | reload | backup" 1>&2
 	esac
 }
 
