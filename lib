@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # LIB - here document string
 #
@@ -375,6 +376,7 @@ server_holt(){
     $evalcmd stuff "say '${WAIT}'s left."'\015'
     sleep ${WAIT}
     $evalcmd stuff "stop"'\015'
+    $evalcmd quit
 }
 
 server_backup(){
@@ -406,6 +408,7 @@ run_core(){
 	    backup)
 	        if [[ -z $psgrep ]]; then
 	            server_backup "$sudoer" "$home"
+			return 0
 	        else
 	            echo "now running." 1>&2
 	        fi;;
