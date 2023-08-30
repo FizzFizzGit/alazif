@@ -63,9 +63,9 @@ WorkingDirectory=`pwd`/${NAME}
 ExecStart=/bin/bash -c "`pwd`/run.sh ${NAME} start"
 ExecStop=/bin/bash -c "`pwd`/run.sh ${NAME} stop"
 ExecReload=/bin/bash -c "`pwd`/run.sh ${NAME} reload"
-TimeoutStartSec=300
-TimeoutStopSec=300
-TimeoutReloadSec=300
+TimeoutStartSec=60
+TimeoutStopSec=60
+TimeoutReloadSec=120
 Restart=always
 RestartSec=10s
 

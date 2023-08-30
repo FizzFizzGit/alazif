@@ -367,10 +367,11 @@ server_halt(){
 	#stop loop
 	while true; do
     	pid=$(ps aux | grep mc${NAME} | grep -v grep | awk '{print $2}' | head -n 1 || true)
-    	if [[ $pid -eq 0 ]]; then echo "exit proc." 1>&2
+    	if [[ $pid -eq 0 ]]; then
+    		echo "Server Halt." 1>&2
     		return 0
     	else
-    		echo 'waiting : '$pid 1>&2
+    		echo 'Waiting : PID='$pid 1>&2
     		sleep 10
     	fi
 	done
