@@ -358,7 +358,7 @@ server_halt(){
 	runner="sudo -u ${USR} screen -S mc${NAME} -X"
 	$runner stuff "say Stop the server for maintenance.Get ready now."'\015'
 	sleep 1
-	$runner stuff "say '${WAIT}'s left."'\015'
+	$runner stuff "say ${WAIT}s left."'\015'
 	sleep ${WAIT}
 	$runner stuff "kick @a Server is shutdown, Wait for a reboot."'\015'
 	sleep 1
