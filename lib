@@ -154,6 +154,7 @@ make_new_dir(){
 			echo "Create new directory." 1>&2
 			mkdir $str
 			echo $str
+			break
 		else
 			echo $str
 			break
