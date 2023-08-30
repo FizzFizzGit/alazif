@@ -5,7 +5,7 @@
 set -e
 
 #guard syntax
-if [ ! -f ./core/conf ]; then echo "Current Directory is not HOME." 1>&2; exit 1;fi
+cd `dirname $0`
 if [ ! -f ./conf/"$1".conf ]; then echo "$1.conf is not found."; exit; fi
 source ./conf/"$1".conf
 source ./core/slib
@@ -59,7 +59,8 @@ on)	#Register with systemd.
 off) #Unregister systemd.
 	echo -e "\n->Unregister sytemd" 1>&2
 	if "${DAEMON}"; then
-		if [ -f /etc/systemd/system/minecraft-"$1".service ]; then exit; fi
+		if [ ! -f /etc/systemd/system/minecraft-"$1".service ]; then exit; fi
+		sudo systemctl disable minecraft-"$1"
 		sudo rm /etc/systemd/system/minecraft-"$1".service
 		sudo systemctl daemon-reload
 	else
