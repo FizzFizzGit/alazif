@@ -4,7 +4,6 @@
 #
 set -e
 
-#guard syntax
 cd `dirname $0`
 source ./core/lib
 
