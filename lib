@@ -344,51 +344,56 @@ wait_dialog(){
 	read -ep "Enter number of seconds to pause, blank to default. : " wait
 	if [ -n "$wait" ]; then echo $wait; return; fi
 	echo "Use default." 1>&2
-	echo ${WAIT}
+ 	echo ${WAIT}
 }
 
 server_start(){
-	local sudoer
-	sudoer="sudo -u ${USR}"
-    $sudoer screen -dmS mc${NAME} ${JRE} ${ARG} -jar $home/${NAME}/${JAR} --port ${PORT}
+	local runner
+	runner="sudo -u ${USR}"
+	$runner screen -dmS mc${NAME} ${JRE} ${ARG} -jar ${CONF}/${NAME}/${JAR} --port ${PORT}
 }
 
 server_halt(){
-	local evalcmd psgrep
-	evalcmd="sudo -u ${USR} screen -S mc${NAME} -X"
-	$evalcmd stuff "say Stop the server for maintenance.Get ready now."'\015'
+	local runner pid
+	runner="sudo -u ${USR} screen -S mc${NAME} -X"
+	$runner stuff "say Stop the server for maintenance.Get ready now."'\015'
 	sleep 1
-	$evalcmd stuff "say '${WAIT}'s left."'\015'
-    sleep ${WAIT}
-    $evalcmd stuff "kick @a Server is shutdown, Wait for a reboot."'\015'
-    sleep 1
-    $evalcmd stuff "stop"'\015'
-    #stop loop
-    while true; do
-    	psgrep=`ps a | grep ${JAR} | grep -v grep || true`
-    	if [[ -z $psgrep ]]; then return 0; fi
-    done
+	$runner stuff "say '${WAIT}'s left."'\015'
+	sleep ${WAIT}
+	$runner stuff "kick @a Server is shutdown, Wait for a reboot."'\015'
+	sleep 1
+	$runner stuff "stop"'\015'
+	#stop loop
+	while true; do
+    	pid=$(ps aux | grep mc${NAME} | grep -v grep | awk '{print $2}' | head -n 1 || true)
+    	if [[ $pid -eq 0 ]]; then echo "exit proc." 1>&2
+    		return 0
+    	else
+    		echo 'waiting : '$pid 1>&2
+    		sleep 10
+    	fi
+	done
 }
 
 server_backup(){
-	local home sudoer bkdir
-	sudoer="sudo -u ${USR}"; home="$1"
-	bkdir=$home/${NAME}/world_backup/`date "+%Y%m%d%H"`
+	local runner bkdir
+	psres=$(ps aux | grep ${NAME} | grep -v grep || true)
+	if [[ -n $psres ]]; then echo "now running." 1>&2; fi
+	runner="sudo -u ${USR}"
+	bkdir=${CONF}/${NAME}/world_backup/`date "+%Y%m%d%H"`
 	if [ -d $bkdir ]; then return; fi
-    $sudoer mkdir $bkdir
-    $sudoer cp -ar $home/${NAME}/world/ $bkdir/
-    $sudoer cp -ar $home/${NAME}/world_nether/ $bkdir/
-    $sudoer cp -ar $home/${NAME}/world_the_end/ $bkdir/
-    echo "Server Backup to $bkdir." 1>&2
+	$runner mkdir $bkdir
+	$runner cp -ar ${CONF}/${NAME}/world/ $bkdir/
+	$runner cp -ar ${CONF}/${NAME}/world_nether/ $bkdir/
+	$runner cp -ar ${CONF}/${NAME}/world_the_end/ $bkdir/
+	echo "Server Backup to $bkdir." 1>&2
 }
 
 run_core(){
 	source ./conf/"$1".conf
-	local psgrep home
-	psgrep=`ps a | grep ${JAR} | grep -v grep || true`
-	home=`pwd`
+	source ./core/conf
 
-	cd $home/${NAME}
+	cd ${CONF}/${NAME}
 	case "$2" in
 	start)
 		server_start
@@ -398,15 +403,12 @@ run_core(){
 		;;
 	reload)
 		server_halt
-		server_backup $home
+		server_backup
 		server_start
 		;;
 	backup)
-		if [[ -z $psgrep ]]; then
-			server_backup $home
-		else
-			echo "now running." 1>&2
-		fi;;
+		server_backup
+		;;
 	*)
 		echo "start | stop | reload | backup" 1>&2
 	esac
