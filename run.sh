@@ -5,7 +5,7 @@
 set -e
 
 #guard syntax
-if [ ! -f ./core/conf ]; then echo "Current Directory is not HOME." 1>&2; exit 1;fi
+cd `dirname $0`
 source ./core/lib
 
 on_error(){
