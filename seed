@@ -186,15 +186,15 @@ start_up(){
 	home=$(dir_dialog)
 	mkdir $home/conf $home/core
 	cd $home/core
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/lib" --quiet
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/slib" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/lib" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/slib" --quiet
 	conf_gen
 	touch log
 	cd $home
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/confconf.sh" --quiet
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/mcmake.sh" --quiet
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/run.sh" --quiet
-	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/README.md" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/confconf.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/mcmake.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/run.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/README.md" --quiet
 	chmod a+x confconf.sh mcmake.sh run.sh
 
 	alreset

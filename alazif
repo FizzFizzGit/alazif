@@ -11,6 +11,6 @@ trap on_error ERR
 
 #guard syntax
 if [ -f ./core/conf ]; then echo "It works only when you start it for the first time."; exit; fi
-wget
+wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/seed"
 source ./seed
 start_up
