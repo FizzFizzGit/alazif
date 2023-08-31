@@ -1,0 +1,226 @@
+#!/bin/bash
+#
+# seed file
+#
+
+#Title
+declare title=$(cat << EOS
+MincraftServer Deploy Tool
+
+     .S_SSSs    S.       .S_SSSs     sdSSSSSSSbs   .S    sSSs
+    .SS~SSSSS   SS.     .SS~SSSSS    YSSSSSSSS%S  .SS   d%%SP
+    S%S   SSSS  S%S     S%S   SSSS          S%S   S%S  d%S'
+    S%S    S%S  S%S     S%S    S%S         S&S    S%S  S%S
+    S%S SSSS%S  S&S     S%S SSSS%S        S&S     S&S  S&S
+    S&S  SSS%S  S&S     S&S  SSS%S        S&S     S&S  S&S_Ss
+    S&S    S&S  S&S     S&S    S&S       S&S      S&S  S&S~SP
+    S&S    S&S  S&S     S&S    S&S      S*S       S&S  S&S
+    S*S    S&S  S*b     S*S    S&S     S*S        S*S  S*b
+    S*S    S*S  S*S.    S*S    S*S   .s*S         S*S  S*S
+    S*S    S*S   SSSbs  S*S    S*S   sY*SSSSSSSP  S*S  S*S
+    SSS    S*S    YSSP  SSS    S*S  sY*SSSSSSSSP  S*S  S*S
+           SP                  SP                 SP   SP
+           Y                   Y                  Y    Y
+
+                                                      for bash
+                 Installation preparation start
+                        C-c to cancel
+
+EOS
+)
+
+declare ending=$(cat << EOS
+
+Initial setting is completed,
+please read readme.txt for operation method.
+
+EOS
+)
+
+#ResetScreen
+alreset(){
+	clear
+	echo "$title"
+}
+
+#EndScript
+alend(){
+	echo "$ending"
+	read -p "Enter to exit."
+	clear
+}
+
+#Config file
+conf_gen(){
+local conf=$(cat << EOS
+#
+# conf - here document string
+#
+CONF=`pwd`
+JRE='`which java`'
+ARG='-Xms2G -Xmx4G'
+PORT_MIN=50000
+PORT_MAX=60000
+WAIT=30
+
+#END OF FILE
+EOS
+)
+echo "${conf}" > core/conf
+}
+
+make_new_dir(){
+	local str
+	while true; do
+		read -ep "Enter the new directory name. : " str
+		if [ -z "$str" ]; then continue; fi
+		if [ ! -d $str ]; then
+			echo "Create new directory." 1>&2
+			mkdir $str
+			echo $str
+			break
+		else
+			echo $str
+			break
+		fi
+	done
+}
+
+#Use directory dialog
+dir_dialog(){
+	local ret
+	while true; do
+		read -ep "Use current directory?[Y/n] : " yn
+		case $yn in
+		[Yy])
+			echo `pwd`
+			break
+			;;
+		[Nn])
+			ret=`make_new_dir`
+			if [ -z $ret ]; then return 1; fi
+			echo `pwd`/$ret
+			break
+			;;
+		*)
+			echo 'Enter y or n.' 1>&2
+		esac
+	done
+}
+
+apt_list_installer(){
+	local -n ref="$1"
+	echo -e "->Install apt list." 1>&2
+	for val in "${ref[@]}"; do
+		sudo apt install "${val}" 1>&2
+	done
+}
+
+allay_numbered_display(){
+    local -n ref
+    local title
+    ref="$1"; title="$2"
+	echo -e "\nAll $title version.\n" 1>&2
+	for val in "${ref[@]}"; do
+		echo "${val}" 1>&2
+	done
+	echo 1>&2
+}
+
+#Works only when IFS is \n.
+parse_apt_list_output(){
+	local word opt
+	word="$1"; opt="$2"
+	if [ "$IFS" != $'\n' ]; then echo "set IFS to '\n'." >&2; exit 1; fi
+	echo | apt list $opt 2>/dev/null | grep $word | nl -w 1 -s ' : '
+}
+
+get_package_names(){
+	local str=${1%/*}
+	str=${str##* }
+	echo $str
+}
+
+#Provides an installation dialog for apt packages.
+apt_install_dialog(){
+	while getopts fht:w: opt; do
+		case "$opt" in
+		t)
+			local title="${OPTARG}"
+			;;
+		w)
+			local word="${OPTARG}"
+		esac
+	done
+	_IFS=$IFS; IFS=$'\n'
+	local list=($(parse_apt_list_output $word))
+	local _list=($(parse_apt_list_output $word --installed))
+	IFS=$_IFS
+	local len="${#list[@]}"
+	local _len="${#_list[@]}"
+	if [ $len -gt $_len ]; then
+		allay_numbered_display list $title
+		read -ep "Want to install another version? Press Skip on Enter. : " i
+		if [[ $i -gt 0 ]]; then
+			if [[ $i -gt $len ]]; then echo "Invalid number,skip installation." 1>&2; return 0; fi
+			i=$(($i-1))
+			echo $(get_package_names "${list[$i]}")
+			return 0
+		else
+			echo "skip $title installation." 1>&2
+			return 0
+		fi
+	else
+		if [ 0 -eq $_len ]; then echo $(get_package_names "${list[0]}");return 0 ; fi
+	fi
+	echo "$title is already installed." 1>&2
+}
+
+#Start up
+start_up(){
+	local -a APT_LIST
+	local org=`pwd`
+
+	alreset
+	echo "*First boot setting*"
+	home=$(dir_dialog)
+	mkdir $home/conf $home/core
+	cd $home/core
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/lib" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/slib" --quiet
+	conf_gen
+	touch log
+	cd $home
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/confconf.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/mcmake.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/run.sh" --quiet
+	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.2pip/README.md" --quiet
+	chmod a+x confconf.sh mcmake.sh run.sh
+
+	alreset
+	read -p "Do an availability check.Press Enter."
+	APT_LIST+=(`apt_install_dialog -w jre-headless -t JRE`)
+	alreset
+	APT_LIST+=(`apt_install_dialog -w ^screen/ -t screen`)
+	alreset
+	APT_LIST+=(`apt_install_dialog -w ^ufw/ -t ufw`)
+	alreset
+	apt_list_installer APT_LIST
+
+	alreset
+	read -ep "Would you like to create the environment now?[Y/n] : " yn
+	case $yn in
+	[Yy])
+		alreset
+		bash confconf.sh -n ${home##*/}
+		alreset
+		bash mcmake.sh ${home##*/} create -- --
+	esac
+
+	alreset
+	alend
+	cd $org
+	rm alazif
+	rm seed
+
+}
