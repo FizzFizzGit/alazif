@@ -145,45 +145,6 @@ jar_fetch(){
 	if [ -n "$ret" ]; then echo $ret; else exit 1; fi
 }
 
-make_new_dir(){
-	local str
-	while true; do
-		read -ep "Enter the new directory name. : " str
-		if [ -z "$str" ]; then continue; fi
-		if [ ! -d $str ]; then
-			echo "Create new directory." 1>&2
-			mkdir $str
-			echo $str
-			break
-		else
-			echo $str
-			break
-		fi
-	done
-}
-
-#Use directory dialog
-dir_dialog(){
-	local ret
-	while true; do
-		read -ep "Use current directory?[Y/n] : " yn
-		case $yn in
-		[Yy])
-			echo `pwd`
-			break
-			;;
-		[Nn])
-			ret=`make_new_dir`
-			if [ -z $ret ]; then return 1; fi
-			echo `pwd`/$ret
-			break
-			;;
-		*)
-			echo 'Enter y or n.' 1>&2
-		esac
-	done
-}
-
 #Conf name
 conf_name_dialog(){
 	local name
