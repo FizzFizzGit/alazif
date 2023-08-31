@@ -54,16 +54,18 @@ local unitfile=$(sudo cat << EOS
 # unitfile - here document string
 #
 [Unit]
-Description=Minecraft Server Service("${NAME}")
+Description=Minecraft Server Service(${NAME})
 
 [Service]
 Type=forking
 User=${USR}
-WorkingDirectory=`pwd`/"${NAME}"
+WorkingDirectory=`pwd`/${NAME}
 ExecStart=/bin/bash -c "`pwd`/run.sh ${NAME} start"
 ExecStop=/bin/bash -c "`pwd`/run.sh ${NAME} stop"
 ExecReload=/bin/bash -c "`pwd`/run.sh ${NAME} reload"
-TimeoutStopSec=200
+TimeoutStartSec=60
+TimeoutStopSec=60
+TimeoutReloadSec=120
 Restart=always
 RestartSec=10s
 
@@ -73,6 +75,10 @@ WantedBy=multi-user.target
 #END OF FILE
 EOS
 )
+#SuccessExitStatus=143
+#KillMode=control-group
+#KillSignal=SIGTERM
+#SendSIGHUP=yes
 echo "${unitfile}" > "minecraft-$1.service"
 }
 
