@@ -66,7 +66,7 @@ WAIT=30
 #END OF FILE
 EOS
 )
-echo "${conf}" > core/conf
+echo "${conf}" > conf
 }
 
 make_new_dir(){
