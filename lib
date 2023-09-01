@@ -356,7 +356,7 @@ run_core(){
 	source ./conf/"$1".conf
 	source ./core/conf
 
-	cd ${CONF}/${NAME}
+	cd ${NAME}
 	case "$2" in
 	start)
 		server_start
@@ -376,5 +376,3 @@ run_core(){
 		echo "start | stop | reload | backup" 1>&2
 	esac
 }
-
-#LIB END OF FILE
