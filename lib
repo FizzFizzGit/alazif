@@ -341,7 +341,7 @@ server_halt(){
 server_backup(){
 	local runner bkdir
 	psres=$(ps aux | grep ${NAME} | grep -v grep || true)
-	if [[ -n $psres ]]; then echo "now running." 1>&2; fi
+	if [[ -n $psres ]]; then echo "now running, abort backup." 1>&2; return; fi
 	runner="sudo -u ${USR}"
 	bkdir=${CONF}/${NAME}/world_backup/`date "+%Y%m%d%H"`
 	if [ -d $bkdir ]; then return; fi
