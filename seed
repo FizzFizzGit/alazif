@@ -66,7 +66,7 @@ WAIT=30
 #END OF FILE
 EOS
 )
-echo "${conf}" > conf
+echo "${conf}" > core/conf
 }
 
 make_new_dir(){
@@ -188,13 +188,13 @@ start_up(){
 	cd $home/core
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/lib" --quiet
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/slib" --quiet
-	conf_gen
 	touch log
 	cd $home
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/confconf.sh" --quiet
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/mcmake.sh" --quiet
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/run.sh" --quiet
 	wget "https://github.com/FizzFizzGit/alazif/releases/download/v0.3pip/README.md" --quiet
+	conf_gen
 	chmod a+x confconf.sh mcmake.sh run.sh
 
 	alreset
