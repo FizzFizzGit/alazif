@@ -310,9 +310,8 @@ wait_dialog(){
 }
 
 server_start(){
-	local runner
-	runner="sudo -u ${USR}"
-	$runner screen -dmS mc${NAME} ${JRE} ${ARG} -jar ${CONF}/${NAME}/${JAR} --port ${PORT}
+	local runner="sudo -u ${USR} screen -dmS mc${NAME}"
+	$runner ${JRE} ${ARG} -jar ${CONF}/${NAME}/${JAR} --port ${PORT}
 }
 
 server_halt(){
