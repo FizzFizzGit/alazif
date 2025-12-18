@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# mcmake.sh - here document string
+# mcmake.sh - Make Server Environment
 #
 set -e
 
@@ -8,14 +8,25 @@ set -e
 cd `dirname $0`
 if [ ! -f ./conf/"$1".conf ]; then echo "$1.conf is not found."; exit; fi
 source ./conf/"$1".conf
-source ./core/slib
-source ./core/lib
+source ./core/hdoc
 
 on_error(){
 	echo "[Err] ${BASH_SOURCE[1]}:${BASH_LINENO} - '${BASH_COMMAND}' failed" 1>&2
 	exit
 }
 trap on_error ERR
+
+#Generate the environment
+envgen(){
+	local home sudoer
+	home=`pwd`; sudoer="sudo -u ${USR}"
+	$sudoer mkdir $home/${NAME}
+	$sudoer mkdir $home/${NAME}/world_backup
+	$sudoer cp ${JAR} $home/${NAME}
+	cd $home/${NAME}
+	java -jar $home/${NAME}/${JAR}
+	sed -i -e "s/false/true/" "$home/${NAME}/eula.txt"
+}
 
 cat << EOS
 *

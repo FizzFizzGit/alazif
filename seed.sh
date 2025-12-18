@@ -52,9 +52,14 @@ alend(){
 
 #Config file
 conf_gen(){
+touch core/conf.json
+local conf=`pwd`
+local JRE='`which java`'
+local ARG='-Xms2G -Xmx4G'
+jq ".conf = [.CONF = $conf, .JRE = $JRE, .ARG = $ARG, .PORT_MIN = 50000, .PORT_MAX = 60000, .WAIT = 30]" core/conf.json > core/conf.json
 local conf=$(cat << EOS
 #
-# conf - here document string
+# conf - confconf config file.
 #
 CONF=`pwd`
 JRE='`which java`'
@@ -63,10 +68,9 @@ PORT_MIN=50000
 PORT_MAX=60000
 WAIT=30
 
-#END OF FILE
 EOS
 )
-echo "${conf}" > core/conf
+echo "${conf}" > core/conf.json
 }
 
 make_new_dir(){
@@ -108,74 +112,6 @@ dir_dialog(){
 	done
 }
 
-apt_list_installer(){
-	local -n ref="$1"
-	echo -e "->Install apt list." 1>&2
-	for val in "${ref[@]}"; do
-		sudo apt install "${val}" 1>&2
-	done
-}
-
-allay_numbered_display(){
-    local -n ref
-    local title
-    ref="$1"; title="$2"
-	echo -e "\nAll $title version.\n" 1>&2
-	for val in "${ref[@]}"; do
-		echo "${val}" 1>&2
-	done
-	echo 1>&2
-}
-
-#Works only when IFS is \n.
-parse_apt_list_output(){
-	local word opt
-	word="$1"; opt="$2"
-	if [ "$IFS" != $'\n' ]; then echo "set IFS to '\n'." >&2; exit 1; fi
-	echo | apt list $opt 2>/dev/null | grep $word | nl -w 1 -s ' : '
-}
-
-get_package_names(){
-	local str=${1%/*}
-	str=${str##* }
-	echo $str
-}
-
-#Provides an installation dialog for apt packages.
-apt_install_dialog(){
-	while getopts fht:w: opt; do
-		case "$opt" in
-		t)
-			local title="${OPTARG}"
-			;;
-		w)
-			local word="${OPTARG}"
-		esac
-	done
-	_IFS=$IFS; IFS=$'\n'
-	local list=($(parse_apt_list_output $word))
-	local _list=($(parse_apt_list_output $word --installed))
-	IFS=$_IFS
-	local len="${#list[@]}"
-	local _len="${#_list[@]}"
-	if [ $len -gt $_len ]; then
-		allay_numbered_display list $title
-		read -ep "Want to install another version? Press Skip on Enter. : " i
-		if [[ $i -gt 0 ]]; then
-			if [[ $i -gt $len ]]; then echo "Invalid number,skip installation." 1>&2; return 0; fi
-			i=$(($i-1))
-			echo $(get_package_names "${list[$i]}")
-			return 0
-		else
-			echo "skip $title installation." 1>&2
-			return 0
-		fi
-	else
-		if [ 0 -eq $_len ]; then echo $(get_package_names "${list[0]}");return 0 ; fi
-	fi
-	echo "$title is already installed." 1>&2
-}
-
 #Start up
 start_up(){
 	local -a APT_LIST
@@ -199,13 +135,7 @@ start_up(){
 
 	alreset
 	read -p "Do an availability check.Press Enter."
-	APT_LIST+=(`apt_install_dialog -w jre-headless -t JRE`)
-	alreset
-	APT_LIST+=(`apt_install_dialog -w ^screen/ -t screen`)
-	alreset
-	APT_LIST+=(`apt_install_dialog -w ^ufw/ -t ufw`)
-	alreset
-	apt_list_installer APT_LIST
+	apt_pkg_installer
 
 	alreset
 	read -ep "Would you like to create the environment now?[Y/n] : " yn

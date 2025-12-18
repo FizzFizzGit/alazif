@@ -1,0 +1,16 @@
+{
+  "pkg": [
+    {
+      "name": "JRE",
+      "query": "jre-headless"
+    },
+    {
+      "name": "screen",
+      "query": "^screen/"
+    },
+    {
+      "name": "ufw",
+      "query": "^ufw/"
+    }
+  ]
+}

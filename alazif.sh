@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# alazif - MincraftServer Deploy Tool
+#
+
 set -e
 shopt -s inherit_errexit
 

@@ -1,13 +1,11 @@
 #!/bin/bash
 #
-# confconf.sh - here document string
+# confconf.sh - RunScript Config Wizard.
 #
 set -e
 
 cd `dirname $0`
-source ./core/conf
-source ./core/slib
-source ./core/lib
+source ./core/cccore
 
 on_error(){
 	echo "[Err] ${BASH_SOURCE[1]}:${BASH_LINENO} - '${BASH_COMMAND}' failed" 1>&2
@@ -94,6 +92,14 @@ while true; do
 	esac
 done
 
-run_confgen "$name" "$jre" "$jar" "$arg" "$usr" "$port" "$wait" "$cpsrc" "$daemon"
+jq ".name = $name"
+jq ".jre = $jre"
+jq ".jar = $jar"
+jq ".arg = $arg"
+jq ".usr = $usr"
+jq ".port = $port"
+jq ".wait = $wait"
+jq ".cpsrc = $cpsrc"
+jq ".daemon = $daemon"
 
 #confconf.sh END OF FILE
