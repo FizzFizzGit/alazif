@@ -53,7 +53,6 @@ delete) #Delete environment.
 	exit
 esac
 
-
 case "$3" in #Register/Unregister systemd.
 on)	#Register with systemd.
 	echo -e "\n->Register systemd" 1>&2
